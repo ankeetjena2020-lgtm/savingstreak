@@ -100,6 +100,41 @@ elif menu == "Savings Goals":
     st.text("Track target trajectories for diversified allocation funds.")
 
 # --- MODULE 5: P2P BILL SPLITTER ---
+# --- MODULE 5: P2P BILL SPLITTER ---
 elif menu == "P2P Bill Splitter":
     st.title("🤝 Peer-to-Peer Capital Ledger (Splitter)")
-    st.text("Equitable algorithmic cost allocation matrix.")
+    st.markdown("Equitable algorithmic cost allocation matrix.")
+    
+    st.markdown("---")
+    st.subheader("Split a New Expense")
+    
+    with st.form("splitter_form"):
+        total_amount = st.number_input("Total Bill Amount (₹)", min_value=0.0, value=0.0, step=10.0)
+        friends_input = st.text_input("Enter Friends' Names (comma-separated)", placeholder="Rahul, Amit, Priya")
+        
+        submit_split = st.form_submit_button("Calculate Split Shares", use_container_width=True)
+        
+    if submit_split:
+        if total_amount <= 0:
+            st.error("Invalid Amount: Bill must be greater than ₹0.")
+        elif not friends_input:
+            st.error("Missing Data: Please enter at least one friend's name.")
+        else:
+            # Names split karke clean karna
+            friends_list = [name.strip() for name in friends_input.split(",") if name.strip()]
+            # Apne aap ko include karna (You + Friends)
+            total_people = len(friends_list) + 1
+            share_per_person = round(total_amount / total_people, 2)
+            
+            st.success("Algorithmic cost allocation calculated successfully!")
+            
+            # Result Display
+            st.markdown("### 📊 Distribution Summary")
+            st.info(f"Total People: **{total_people}** (You + {len(friends_list)} Friends)")
+            
+            # Table display
+            data = {"Participant": ["You"] + friends_list, "Individual Share": [f"₹{share_per_person}"] * total_people}
+            df_split = pd.DataFrame(data)
+            st.table(df_split)
+            
+            st.markdown(f"**Each person owes you:** <span style='color:green; font-weight:bold; font-size:1.2em;'>₹{share_per_person}</span>", unsafe_allow_html=True)
