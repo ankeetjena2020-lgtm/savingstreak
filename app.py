@@ -100,41 +100,73 @@ elif menu == "Savings Goals":
     st.text("Track target trajectories for diversified allocation funds.")
 
 # --- MODULE 5: P2P BILL SPLITTER ---
-# --- MODULE 5: P2P BILL SPLITTER ---
 elif menu == "P2P Bill Splitter":
     st.title("🤝 Peer-to-Peer Capital Ledger (Splitter)")
     st.markdown("Equitable algorithmic cost allocation matrix.")
-    
     st.markdown("---")
-    st.subheader("Split a New Expense")
     
-    with st.form("splitter_form"):
-        total_amount = st.number_input("Total Bill Amount (₹)", min_value=0.0, value=0.0, step=10.0)
-        friends_input = st.text_input("Enter Friends' Names (comma-separated)", placeholder="Rahul, Amit, Priya")
+    # Core Configurations
+    total_amount = st.number_input("Total Bill Amount (₹)", min_value=0.0, value=0.0, step=10.0)
+    friends_input = st.text_input("Enter Friends' Names (comma-separated)", placeholder="Rahul, Amit, Priya")
+    
+    if friends_input:
+        friends_list = [name.strip() for name in friends_input.split(",") if name.strip()]
+        all_participants = ["You"] + friends_list
+        total_people = len(all_participants)
         
-        submit_split = st.form_submit_button("Calculate Split Shares", use_container_width=True)
-        
-    if submit_split:
-        if total_amount <= 0:
-            st.error("Invalid Amount: Bill must be greater than ₹0.")
-        elif not friends_input:
-            st.error("Missing Data: Please enter at least one friend's name.")
-        else:
-            # Names split karke clean karna
-            friends_list = [name.strip() for name in friends_input.split(",") if name.strip()]
-            # Apne aap ko include karna (You + Friends)
-            total_people = len(friends_list) + 1
+        if total_amount > 0:
             share_per_person = round(total_amount / total_people, 2)
+            st.info(f"Total Members: **{total_people}** | Fair Share Per Person: **₹{share_per_person:.2f}**")
+            st.markdown("---")
             
-            st.success("Algorithmic cost allocation calculated successfully!")
+            st.subheader("💰 Who Paid How Much?")
+            paid_by_dict = {}
             
-            # Result Display
-            st.markdown("### 📊 Distribution Summary")
-            st.info(f"Total People: **{total_people}** (You + {len(friends_list)} Friends)")
+            # Dynamic dynamic inputs generation for tracking payments
+            cols = st.columns(min(len(all_participants), 3))
+            for index, person in enumerate(all_participants):
+                col_to_use = cols[index % 3]
+                with col_to_use:
+                    # 'You' ke liye by default total amount set kar dete hain initialization simple rakhne ko
+                    default_paid = total_amount if person == "You" else 0.0
+                    paid_by_dict[person] = st.number_input(f"Paid by {person} (₹)", min_value=0.0, value=default_paid, key=f"paid_{person}")
             
-            # Table display
-            data = {"Participant": ["You"] + friends_list, "Individual Share": [f"₹{share_per_person}"] * total_people}
-            df_split = pd.DataFrame(data)
-            st.table(df_split)
+            # Sum checking validation
+            total_paid_entered = sum(paid_by_dict.values())
             
-            st.markdown(f"**Each person owes you:** <span style='color:green; font-weight:bold; font-size:1.2em;'>₹{share_per_person}</span>", unsafe_allow_html=True)
+            if abs(total_paid_entered - total_amount) > 0.01:
+                st.warning(f"⚠️ Sum mismatch: Total of individual payments (₹{total_paid_entered:.2f}) must match the Total Bill Amount (₹{total_amount:.2f}).")
+            else:
+                if st.button("Calculate Balance Matrix & Settlement Streams", use_container_width=True):
+                    st.success("Ledger calculations integrated smoothly!")
+                    
+                    st.markdown("### 📊 Debt Settlement Matrix")
+                    
+                    balances = {}
+                    for person in all_participants:
+                        # Balance = Paid Amount - Share they owe
+                        balances[person] = round(paid_by_dict[person] - share_per_person, 2)
+                    
+                    # Creating clear UI layout for who receives and who owes
+                    col_matrix_1, col_matrix_2 = st.columns(2)
+                    
+                    with col_matrix_1:
+                        st.markdown("**🟢 Receives Back (Owed Money):**")
+                        for person, bal in balances.items():
+                            if bal > 0:
+                                st.write(f"🔹 **{person}** should get back: :green[₹{bal:.2f}]")
+                                
+                    with col_matrix_2:
+                        st.markdown("**🔴 Needs to Pay (Owes Money):**")
+                        for person, bal in balances.items():
+                            if bal < 0:
+                                st.write(f"🔸 **{person}** needs to pay: :red[₹{abs(bal):.2f}]")
+                                
+                    # Clean visual summary table representation
+                    st.markdown("---")
+                    summary_df = pd.DataFrame({
+                        "Participant": all_participants,
+                        "Amount Paid": [f"₹{paid_by_dict[p]:.2f}" for p in all_participants],
+                        "Net Balance": [f"+₹{balances[p]:.2f}" if balances[p] >= 0 else f"-₹{abs(balances[p]):.2f}" for p in all_participants]
+                    })
+                    st.table(summary_df)
