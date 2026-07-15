@@ -89,11 +89,83 @@ elif menu == "Dashboard Matrix":
     c3.metric("Savings Goal Milestones", "2/5 Completed", "40% Target Reached")
 
 # --- MODULE 3: TRACK EXPENSES ---
+# --- MODULE 3: TRACK EXPENSES ---
 elif menu == "Track Expenses":
     st.title("💸 Expense Ledger Optimization")
-    st.text("Log structural outlays and manage budgetary parameters.")
-    # Generic operational form elements can go here
-
+    st.markdown("Log structural outlays and manage budgetary parameters.")
+    st.markdown("---")
+    
+    # Session state initialization for temporary data store
+    if "expense_data" not in st.session_state:
+        st.session_state.expense_data = pd.DataFrame(columns=["Date", "Description", "Category", "Amount (₹)"])
+    
+    st.subheader("➕ Log New Outlay")
+    
+    # Simple form: Ab yahan category select karne ka koi dropdown option nahi hai!
+    with st.form("expense_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            exp_date = st.date_input("Transaction Date")
+            exp_desc = st.text_input("Description/Label", placeholder="e.g., Zomato dinner, Uber ride, Room Rent, Zara shirt")
+        with col2:
+            exp_amt = st.number_input("Amount (₹)", min_value=0.0, step=50.0)
+            
+        submit_exp = st.form_submit_button("Commit to Ledger", use_container_width=True)
+        
+    if submit_exp:
+        if exp_amt <= 0:
+            st.error("Validation Failure: Amount must be greater than ₹0.")
+        elif not exp_desc.strip():
+            st.error("Validation Failure: Description field cannot be empty.")
+        else:
+            # Algorithmic Automatic Category Keyword Mapping Matrix
+            desc_lower = exp_desc.lower().strip()
+            
+            if any(k in desc_lower for k in ["zomato", "swiggy", "dinner", "food", "restaurant", "lunch", "cafe", "maggi"]):
+                auto_category = "Food & Dining"
+            elif any(k in desc_lower for k in ["rent", "room", "pg", "flat", "hostel"]):
+                auto_category = "Rent & Living"
+            elif any(k in desc_lower for k in ["uber", "ola", "auto", "petrol", "rapido", "train", "flight", "metro"]):
+                auto_category = "Transport"
+            elif any(k in desc_lower for k in ["bill", "electricity", "wifi", "recharge", "water", "jio", "airtel"]):
+                auto_category = "Utilities & Bills"
+            elif any(k in desc_lower for k in ["zara", "hnm", "myntra", "clothes", "shopping", "amazon", "flipkart"]):
+                auto_category = "Shopping"
+            elif any(k in desc_lower for k in ["netflix", "prime", "movie", "hotstar", "game", "club"]):
+                auto_category = "Entertainment"
+            else:
+                auto_category = "Miscellaneous"
+                
+            # Create a new row row
+            new_row = pd.DataFrame([{
+                "Date": exp_date.strftime('%Y-%m-%d'),
+                "Description": exp_desc.strip(),
+                "Category": auto_category,  # Automatic Category Assigned
+                "Amount (₹)": round(exp_amt, 2)
+            }])
+            
+            # Append to session data frame
+            st.session_state.expense_data = pd.concat([st.session_state.expense_data, new_row], ignore_index=True)
+            st.success(f"Expense logged! System auto-assigned category: **{auto_category}**")
+            
+    # Display Analytics Matrix
+    st.markdown("---")
+    st.subheader("📊 Expense Log History")
+    
+    if not st.session_state.expense_data.empty:
+        # Total Summary metrics
+        total_spent = st.session_state.expense_data["Amount (₹)"].sum()
+        st.metric(label="Total Outflow Vector", value=f"₹{total_spent:,.2f}")
+        
+        # Display DataFrame layout
+        st.dataframe(st.session_state.expense_data, use_container_width=True)
+        
+        # Category Breakdown Metric Visuals
+        st.markdown("#### Category Allocation Summary")
+        cat_totals = st.session_state.expense_data.groupby("Category")["Amount (₹)"].sum().reset_index()
+        st.table(cat_totals)
+    else:
+        st.info("No transaction matrices loaded into current runtime history.")
 # --- MODULE 4: SAVINGS GOALS ---
 elif menu == "Savings Goals":
     st.title("🎯 Structural Capital Goals")
