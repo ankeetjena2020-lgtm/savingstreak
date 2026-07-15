@@ -7,7 +7,7 @@ st.set_page_config(page_title="FinTrack Pro", page_icon="📊", layout="wide")
 
 # --- INITIALIZATION MATRIX ---
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = True  # Simulated live state
+    st.session_state.logged_in = True  
 
 if "user" not in st.session_state:
     st.session_state.user = "AP_AP"
@@ -40,7 +40,6 @@ else:
     )
 
     st.sidebar.markdown("---")
-    # Fixed Logout Engine Toggle
     if st.sidebar.button("Logout Session", use_container_width=True):
         st.session_state.logged_in = False
         st.session_state.user = None
@@ -52,16 +51,13 @@ else:
         st.info(f"Welcome back, {st.session_state.user or 'User'}. Centralized metrics engine operational.")
         st.markdown("---")
         
-        # Live calculations
         live_total_expenses = st.session_state.expense_data["Amount (₹)"].sum() if not st.session_state.expense_data.empty else 0.0
         monthly_budget = 50000.0
         remaining_budget = max(0.0, monthly_budget - live_total_expenses)
         
-        # Dynamic Savings Calculations for Dashboard
         total_goals = len(st.session_state.savings_goals)
         completed_goals = sum(1 for g in st.session_state.savings_goals if g["Saved"] >= g["Target"])
         
-        # Grid metrics layout
         st.subheader("📌 System Status & Core Parameters")
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("💸 Total Live Expenses", f"₹{live_total_expenses:,.2f}", delta=f"{len(st.session_state.expense_data)} Transact")
@@ -82,7 +78,7 @@ else:
             for g in st.session_state.savings_goals:
                 st.write(f"🏁 **{g['Goal']}:** ₹{g['Saved']:.0f} / ₹{g['Target']:.0f}")
 
-    # --- MODULE 2: TRACK EXPENSES ---
+    # --- MODULE 2: TRACK EXPENSES (AUTOMATIC CATEGORY ENGINE) ---
     elif menu == "Track Expenses":
         st.title("💸 Expense Ledger Optimization")
         st.markdown("---")
@@ -90,14 +86,22 @@ else:
             col1, col2 = st.columns(2)
             with col1:
                 exp_date = st.date_input("Transaction Date")
-                exp_desc = st.text_input("Description/Label", placeholder="e.g., Zomato dinner")
+                exp_desc = st.text_input("Description/Label", placeholder="e.g., Zomato dinner, Uber ride")
             with col2:
                 exp_amt = st.number_input("Amount (₹)", min_value=0.0, step=50.0)
             submit_exp = st.form_submit_button("Commit to Ledger", use_container_width=True)
             
         if submit_exp and exp_amt > 0 and exp_desc.strip():
             desc_lower = exp_desc.lower().strip()
-            auto_category = "Food & Dining" if "zomato" in desc_lower or "food" in desc_lower else "Miscellaneous"
+            if any(k in desc_lower for k in ["zomato", "swiggy", "dinner", "food", "lunch", "restaurant"]):
+                auto_category = "Food & Dining"
+            elif any(k in desc_lower for k in ["uber", "ola", "auto", "metro", "transport"]):
+                auto_category = "Transport"
+            elif any(k in desc_lower for k in ["rent", "room", "hostel", "pg"]):
+                auto_category = "Rent & Living"
+            else:
+                auto_category = "Miscellaneous"
+                
             new_row = pd.DataFrame([{"Date": exp_date.strftime('%Y-%m-%d'), "Description": exp_desc.strip(), "Category": auto_category, "Amount (₹)": round(exp_amt, 2)}])
             st.session_state.expense_data = pd.concat([st.session_state.expense_data, new_row], ignore_index=True)
             st.success(f"Log saved! Category: {auto_category}")
@@ -117,7 +121,7 @@ else:
             
         if submit_goal and goal_name.strip() and target_amt > 0:
             st.session_state.savings_goals.append({"Goal": goal_name.strip(), "Target": round(target_amt, 2), "Saved": round(saved_amt, 2)})
-            st.success(f"Goal '{goal_name}' updated inside tracking matrices!")
+            st.success(f"Goal '{goal_name}' integrated successfully!")
 
         st.markdown("---")
         for g in st.session_state.savings_goals:
@@ -146,19 +150,44 @@ else:
             except Exception:
                 st.error("Connection protocol error.")
 
-    # --- MODULE 5: P2P BILL SPLITTER ---
+    # --- MODULE 5: P2P BILL SPLITTER (FIXED CORE AS PER YOUR INSTRUCTION) ---
     elif menu == "P2P Bill Splitter":
         st.title("🤝 Peer-to-Peer Capital Ledger (Splitter)")
-        total_amount = st.number_input("Total Bill Amount (₹)", min_value=0.0, value=0.0)
-        friends_input = st.text_input("Enter Friends' Names (comma-separated)")
+        st.markdown("Equitable algorithmic cost allocation matrix.")
+        st.markdown("---")
         
-        if st.button("Calculate Balance Matrix & Settlement Streams") and total_amount > 0 and friends_input:
-            friends_list = [name.strip() for name in friends_input.split(",") if name.strip()]
-            total_people = len(friends_list) + 1
-            share_per_person = round(total_amount / total_people, 2)
-            your_receivable = round(total_amount - share_per_person, 2)
-            
-            st.success("Ledger calculations integrated smoothly!")
-            st.write(f"🔹 **You** should get back: ₹{your_receivable:.2f}")
-            for person in friends_list:
-                st.write(f"🔸 **{person}** needs to pay You: ₹{share_per_person:.2f}")
+        total_amount = st.number_input("Total Bill Amount (₹)", min_value=0.0, value=0.0, step=10.0)
+        friends_input = st.text_input("Enter Friends' Names (comma-separated)", placeholder="Rahul, Amit, Priya")
+        
+        if st.button("Calculate Balance Matrix & Settlement Streams", use_container_width=True):
+            if total_amount <= 0:
+                st.error("Validation Failure: Total Bill must be greater than ₹0.")
+            elif not friends_input.strip():
+                st.error("Validation Failure: Please enter at least one friend's name.")
+            else:
+                friends_list = [name.strip() for name in friends_input.split(",") if name.strip()]
+                total_people = len(friends_list) + 1  
+                share_per_person = round(total_amount / total_people, 2)
+                your_receivable = round(total_amount - share_per_person, 2)
+                
+                st.success("Ledger calculations integrated smoothly! (Assumption: Total bill paid by You)")
+                st.markdown("---")
+                
+                st.subheader("📊 Debt Settlement Matrix")
+                col_matrix_1, col_matrix_2 = st.columns(2)
+                with col_matrix_1:
+                    st.markdown("**🟢 Receives Back (Owed Money):**")
+                    st.write(f"🔹 **You** should get back: :green[₹{your_receivable:.2f}]")
+                            
+                with col_matrix_2:
+                    st.markdown("**🔴 Needs to Pay (Owes Money):**")
+                    for person in friends_list:
+                        st.write(f"🔸 **{person}** needs to pay You: :red[₹{share_per_person:.2f}]")
+                            
+                st.markdown("---")
+                summary_df = pd.DataFrame({
+                    "Participant": ["You"] + friends_list,
+                    "Amount Paid": [f"₹{total_amount:.2f}"] + ["₹0.00"] * len(friends_list),
+                    "Net Balance": [f"+₹{your_receivable:.2f}"] + [f"-₹{share_per_person:.2f}"] * len(friends_list)
+                })
+                st.table(summary_df)
