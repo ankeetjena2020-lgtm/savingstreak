@@ -233,7 +233,69 @@ elif menu == "Track Expenses":
 # --- MODULE 4: SAVINGS GOALS ---
 elif menu == "Savings Goals":
     st.title("🎯 Structural Capital Goals")
-    st.text("Track target trajectories for diversified allocation funds.")
+    st.markdown("Track target trajectories for diversified allocation funds.")
+    st.markdown("---")
+    
+    # Session state for tracking savings list
+    if "savings_goals" not in st.session_state:
+        st.session_state.savings_goals = [
+            {"Goal": "Tech Upgrade (Laptop)", "Target": 60000.0, "Saved": 60000.0},
+            {"Goal": "Emergency Contingency", "Target": 25000.0, "Saved": 25000.0},
+            {"Goal": "Placement Trip Fund", "Target": 15000.0, "Saved": 5000.0},
+        ]
+        
+    # Form to add a new goal
+    st.subheader("➕ Establish New Target Node")
+    with st.form("savings_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            goal_name = st.text_input("Goal Objective/Label", placeholder="e.g., Bike Downpayment, Cloud Certifications")
+            target_amt = st.number_input("Target Amount (₹)", min_value=0.0, step=1000.0)
+        with col2:
+            saved_amt = st.number_input("Currently Allocated/Saved (₹)", min_value=0.0, step=500.0)
+            
+        submit_goal = st.form_submit_button("Deploy Goal Parameter", use_container_width=True)
+        
+    if submit_goal:
+        if not goal_name.strip():
+            st.error("Validation Failure: Goal label cannot be left blank.")
+        elif target_amt <= 0:
+            st.error("Validation Failure: Target amount must be greater than ₹0.")
+        elif saved_amt > target_amt:
+            st.error("Validation Failure: Allocated savings cannot exceed the total target.")
+        else:
+            st.session_state.savings_goals.append({
+                "Goal": goal_name.strip(),
+                "Target": round(target_amt, 2),
+                "Saved": round(saved_amt, 2)
+            })
+            st.success(f"Goal Vector '{goal_name}' integrated successfully!")
+
+    # Display Active Goals Matrix
+    st.markdown("---")
+    st.subheader("📊 Active Savings Trajectories")
+    
+    if st.session_state.savings_goals:
+        for idx, g in enumerate(st.session_state.savings_goals):
+            # Calculate metrics
+            progress_ratio = min(1.0, g["Saved"] / g["Target"]) if g["Target"] > 0 else 0.0
+            percent_complete = progress_ratio * 100
+            
+            # Layout design for goal tracking
+            col_g1, col_g2 = st.columns([3, 1])
+            with col_g1:
+                st.markdown(f"### 🏁 {g['Goal']}")
+                st.progress(progress_ratio)
+            with col_g2:
+                st.markdown("<div style='padding-top: 15px;'></div>", unsafe_allow_html=True)
+                st.metric(
+                    label="Status Metrics", 
+                    value=f"₹{g['Saved']:,.0f} / ₹{g['Target']:,.0f}", 
+                    delta=f"{percent_complete:.1f}% Met"
+                )
+            st.markdown("---")
+    else:
+        st.info("No structural goal vectors configured in the current runtime.")
 
 # --- MODULE 5: P2P BILL SPLITTER ---
 elif menu == "P2P Bill Splitter":
