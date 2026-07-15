@@ -150,7 +150,7 @@ else:
             except Exception:
                 st.error("Connection protocol error.")
 
-    # --- MODULE 5: P2P BILL SPLITTER (FIXED CORE AS PER YOUR INSTRUCTION) ---
+    # --- MODULE 5: P2P BILL SPLITTER (SMART FLEXIBLE PAYER OVERRIDE) ---
     elif menu == "P2P Bill Splitter":
         st.title("🤝 Peer-to-Peer Capital Ledger (Splitter)")
         st.markdown("Equitable algorithmic cost allocation matrix.")
@@ -159,6 +159,14 @@ else:
         total_amount = st.number_input("Total Bill Amount (₹)", min_value=0.0, value=0.0, step=10.0)
         friends_input = st.text_input("Enter Friends' Names (comma-separated)", placeholder="Rahul, Amit, Priya")
         
+        # Smart toggle button
+        i_paid = st.checkbox("Did you (You) pay the full bill amount?", value=True)
+        
+        payer = "You"
+        if not i_paid and friends_input.strip():
+            clean_friends = [name.strip() for name in friends_input.split(",") if name.strip()]
+            payer = st.selectbox("Select who paid the bill instead:", clean_friends)
+        
         if st.button("Calculate Balance Matrix & Settlement Streams", use_container_width=True):
             if total_amount <= 0:
                 st.error("Validation Failure: Total Bill must be greater than ₹0.")
@@ -166,28 +174,44 @@ else:
                 st.error("Validation Failure: Please enter at least one friend's name.")
             else:
                 friends_list = [name.strip() for name in friends_input.split(",") if name.strip()]
-                total_people = len(friends_list) + 1  
+                all_participants = ["You"] + friends_list
+                total_people = len(all_participants)  
                 share_per_person = round(total_amount / total_people, 2)
-                your_receivable = round(total_amount - share_per_person, 2)
                 
-                st.success("Ledger calculations integrated smoothly! (Assumption: Total bill paid by You)")
+                st.success(f"Ledger calculations integrated smoothly! (Paid by: {payer})")
                 st.markdown("---")
-                
                 st.subheader("📊 Debt Settlement Matrix")
+                
                 col_matrix_1, col_matrix_2 = st.columns(2)
+                
+                # Logic allocation based on who paid
+                balances = {}
+                for person in all_participants:
+                    paid_amt = total_amount if person == payer else 0.0
+                    balances[person] = round(paid_amt - share_per_person, 2)
+                
                 with col_matrix_1:
                     st.markdown("**🟢 Receives Back (Owed Money):**")
-                    st.write(f"🔹 **You** should get back: :green[₹{your_receivable:.2f}]")
+                    for p, bal in balances.items():
+                        if bal > 0:
+                            st.write(f"🔹 **{p}** should get back: :green[₹{bal:.2f}]")
                             
                 with col_matrix_2:
                     st.markdown("**🔴 Needs to Pay (Owes Money):**")
-                    for person in friends_list:
-                        st.write(f"🔸 **{person}** needs to pay You: :red[₹{share_per_person:.2f}]")
-                            
+                    for p, bal in balances.items():
+                        if bal < 0:
+                            if payer == "You":
+                                st.write(f"🔸 **{p}** needs to pay You: :red[₹{abs(bal):.2f}]")
+                            else:
+                                if p == "You":
+                                    st.write(f"🔸 **You** need to pay {payer}: :red[₹{abs(bal):.2f}]")
+                                else:
+                                    st.write(f"🔸 **{p}** needs to pay {payer}: :red[₹{abs(bal):.2f}]")
+                                    
                 st.markdown("---")
                 summary_df = pd.DataFrame({
-                    "Participant": ["You"] + friends_list,
-                    "Amount Paid": [f"₹{total_amount:.2f}"] + ["₹0.00"] * len(friends_list),
-                    "Net Balance": [f"+₹{your_receivable:.2f}"] + [f"-₹{share_per_person:.2f}"] * len(friends_list)
+                    "Participant": all_participants,
+                    "Amount Paid": [f"₹{total_amount:.2f}" if p == payer else "₹0.00" for p in all_participants],
+                    "Net Balance": [f"+₹{balances[p]:.2f}" if balances[p] >= 0 else f"-₹{abs(balances[p]):.2f}" for p in all_participants]
                 })
                 st.table(summary_df)
